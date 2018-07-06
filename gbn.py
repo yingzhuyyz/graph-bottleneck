@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as pl
 import random
 import numpy
+import matplotlib.animation as animation
 
 def mk_graph():
     N1 = 100
@@ -36,11 +37,25 @@ def random_conn(g):
     V = list(g.nodes())
     u = random.choice(V)
     v = random.choice(V)
-    path = nx.shortest_path(g, u, v)
-    for i in range(len(path)-1):
-        g.get_edge_data(path[i], path[i+1])['w'] += 1
-    for n in path:
-        g.node[n]['w'] += 1
+    try:
+        path = nx.shortest_path(g, u, v)
+        for i in range(len(path)-1):
+            g.get_edge_data(path[i], path[i+1])['w'] += 1
+        for n in path:
+            g.node[n]['w'] += 1
+    except:
+        pass
+
+def random_walk(g, l):
+    V = list(g.nodes())
+    u = random.choice(V)
+    g.node[u]['w'] += 1
+    for i in range(l):
+        neighbors = list(g.neighbors(u))
+        v = random.choice(neighbors)
+        g.node[v]['w'] += 1
+        g.get_edge_data(u, v)['w'] += 1
+        u = v
 
 def get_edge_color(g):
     edges = g.edges()
@@ -54,23 +69,34 @@ def get_node_size(g, vmin, vmax):
     max_w = max(ws)
     return [vmin + (w/max_w)*(vmax-vmin) for w in ws]
 
+def draw(g, pos=None):
+    cmap = pl.get_cmap("Greys")
+    nx.draw(g,
+        node_size = get_node_size(g, 0, 200),
+        edge_color = get_edge_color(g),
+        edge_vmin = 0,
+        edge_vmax = 1,
+        edge_cmap = cmap,
+        alpha = 0.3,
+        pos = pos
+        )
+
+def static_draw(g):
+    # Simulation
+    for i in range(100):
+        random_conn(g)
+        # random_walk(g, 10)
+    
+    # Plot the graph
+    pl.figure()
+    draw(g)
+    pl.savefig('a.png')
+
+import matplotlib
+matplotlib.use('MacOSX')
 g = mk_graph()
-Nv = len(g.nodes())
-Ne = len(g.edges())
-
-# Simulation
-for i in range(100):
+pos = nx.spring_layout(g)
+pl.ion()
+def step():
     random_conn(g)
-
-# Plot the graph
-pl.figure()
-cmap = pl.get_cmap("Greys")
-nx.draw(g,
-    node_size = get_node_size(g, 0, 200),
-    edge_color = get_edge_color(g),
-    edge_vmin = 0,
-    edge_vmax = 1,
-    edge_cmap = cmap,
-    alpha = 0.2
-    )
-pl.savefig('a.png')
+    draw(g, pos)
